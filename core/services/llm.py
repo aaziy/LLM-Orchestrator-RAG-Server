@@ -31,6 +31,10 @@ class Provider:
     def generate(self, system: str, user: str) -> Generation:
         raise NotImplementedError
 
+    def generate_stream(self, system: str, user: str):
+        """Yield answer text deltas as they are produced (for SSE streaming)."""
+        raise NotImplementedError
+
 
 class OpenAIProvider(Provider):
     def __init__(self):
@@ -65,6 +69,23 @@ class OpenAIProvider(Provider):
             completion_tokens=getattr(usage, "completion_tokens", 0),
         )
 
+    def generate_stream(self, system: str, user: str):
+        stream = self._client.chat.completions.create(
+            model=self._chat_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0,
+            stream=True,
+        )
+        for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
+
 
 class FakeProvider(Provider):
     """Deterministic, dependency-free provider for offline dev and tests.
@@ -95,6 +116,11 @@ class FakeProvider(Provider):
             prompt_tokens=len(user.split()),
             completion_tokens=8,
         )
+
+    def generate_stream(self, system: str, user: str):
+        # Deterministic multi-delta stream so SSE wiring is testable offline.
+        for delta in ["[fake-answer] ", user[:60], " [end]"]:
+            yield delta
 
 
 @lru_cache(maxsize=1)
