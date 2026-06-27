@@ -1,0 +1,25 @@
+{
+  "documents": {
+    "solar": "The Sun is a G-type main-sequence star at the center of the Solar System. It is roughly 4.6 billion years old. The Sun's core reaches temperatures of about 15 million degrees Celsius, where hydrogen fuses into helium. This nuclear fusion releases the energy that powers sunlight. The Sun accounts for about 99.86 percent of the total mass of the Solar System.",
+    "oceans": "Earth's oceans cover about 71 percent of the planet's surface. The Pacific Ocean is the largest and deepest ocean. The deepest known point is the Challenger Deep in the Mariana Trench, reaching nearly 11,000 meters. Ocean currents redistribute heat around the globe and strongly influence regional climate. Seawater is salty primarily because of dissolved sodium chloride.",
+    "python": "Python is a high-level, interpreted programming language created by Guido van Rossum and first released in 1991. It emphasizes code readability with significant indentation. Python supports multiple paradigms including procedural, object-oriented, and functional programming. The reference implementation, CPython, is written in C. Python's package manager is called pip.",
+    "coffee": "Coffee is a brewed drink prepared from roasted coffee beans, the seeds of berries from Coffea plants. Caffeine in coffee acts as a mild stimulant. The two most commonly grown species are Coffea arabica and Coffea robusta. Arabica beans are generally considered higher quality and have less caffeine than robusta. Coffee is one of the most traded commodities in the world."
+  },
+  "questions": [
+    {"question": "How old is the Sun?", "doc": "solar", "expect": "4.6 billion"},
+    {"question": "What happens in the Sun's core?", "doc": "solar", "expect": "fuses into helium"},
+    {"question": "What fraction of the Solar System's mass is the Sun?", "doc": "solar", "expect": "99.86 percent"},
+    {"question": "What percent of Earth is covered by oceans?", "doc": "oceans", "expect": "71 percent"},
+    {"question": "What is the deepest point in the ocean?", "doc": "oceans", "expect": "Challenger Deep"},
+    {"question": "Why is seawater salty?", "doc": "oceans", "expect": "sodium chloride"},
+    {"question": "Who created Python?", "doc": "python", "expect": "Guido van Rossum"},
+    {"question": "What is Python's package manager?", "doc": "python", "expect": "pip"},
+    {"question": "What is the reference implementation of Python written in?", "doc": "python", "expect": "written in C"},
+    {"question": "What plant do coffee beans come from?", "doc": "coffee", "expect": "Coffea"},
+    {"question": "Which coffee species has less caffeine?", "doc": "coffee", "expect": "Arabica"},
+    {"question": "What does caffeine do?", "doc": "coffee", "expect": "stimulant"},
+    {"question": "When was Python first released?", "doc": "python", "expect": "1991"},
+    {"question": "What is the largest ocean?", "doc": "oceans", "expect": "Pacific Ocean"},
+    {"question": "What temperature is the Sun's core?", "doc": "solar", "expect": "15 million"}
+  ]
+}
