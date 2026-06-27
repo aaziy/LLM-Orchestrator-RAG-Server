@@ -6,6 +6,7 @@ breaks so downstream metadata can record approximate page numbers if desired.
 from __future__ import annotations
 
 import io
+from datetime import date, datetime
 
 
 class UnsupportedDocumentError(ValueError):
@@ -60,3 +61,46 @@ def parse_document(data: bytes, *, mime_type: str = "", filename: str = "") -> s
             f"No parser for mime_type={mime_type!r} filename={filename!r}"
         )
     return parser(data)
+
+
+def _coerce_date(value) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return None
+
+
+def extract_metadata(data: bytes, *, mime_type: str = "", filename: str = "") -> dict:
+    """Best-effort document-level metadata (author, date) from file properties.
+
+    Never raises: extraction is advisory, so failures degrade to empty values.
+    Returned keys are only present when a value was found.
+    """
+    meta: dict = {}
+    mt = mime_type.split(";")[0].strip().lower()
+    ext = ("." + filename.rsplit(".", 1)[-1].lower()) if "." in filename else ""
+
+    try:
+        if mt == "application/pdf" or ext == ".pdf":
+            from pypdf import PdfReader
+
+            info = PdfReader(io.BytesIO(data)).metadata
+            if info:
+                if info.author:
+                    meta["author"] = str(info.author)
+                created = _coerce_date(getattr(info, "creation_date", None))
+                if created:
+                    meta["doc_date"] = created
+        elif mt.endswith("wordprocessingml.document") or ext == ".docx":
+            from docx import Document as DocxDocument
+
+            props = DocxDocument(io.BytesIO(data)).core_properties
+            if props.author:
+                meta["author"] = str(props.author)
+            created = _coerce_date(props.created)
+            if created:
+                meta["doc_date"] = created
+    except Exception:  # noqa: BLE001 — metadata extraction is best-effort
+        return meta
+    return meta
