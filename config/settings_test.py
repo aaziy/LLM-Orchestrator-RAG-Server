@@ -15,8 +15,16 @@ CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_RESULT_BACKEND = None
 CELERY_BROKER_URL = "memory://"
 
-# Deterministic, network-free model + reranker backends.
-RAG = {**RAG, "PROVIDER": "fake", "RERANKER": "fake"}
+# Deterministic, network-free model + reranker backends; tracing off by default
+# (the tracing tests opt into the in-process "memory" backend explicitly).
+RAG = {
+    **RAG,
+    "PROVIDER": "fake",
+    "RERANKER": "fake",
+    "TRACING": "none",
+    "LANGFUSE_PUBLIC_KEY": "",
+    "LANGFUSE_SECRET_KEY": "",
+}
 
 # Keep uploaded test files out of the repo.
 MEDIA_ROOT = os.path.join(tempfile.gettempdir(), "rag_test_media")
