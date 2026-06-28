@@ -27,7 +27,7 @@ from django.contrib.auth import get_user_model  # noqa: E402
 
 from core.models import Document  # noqa: E402
 from core.services.ingest import ingest_document  # noqa: E402
-from core.services.retrieve import retrieve  # noqa: E402
+from core.services.retrieve import retrieve_for_answer  # noqa: E402
 
 FIXTURES = json.loads((Path(__file__).parent / "fixtures.json").read_text())
 EVAL_USERNAME = "__eval__"
@@ -59,7 +59,7 @@ def evaluate(k: int):
     rows = []
 
     for item in FIXTURES["questions"]:
-        retrieved = retrieve(user, item["question"], k)
+        retrieved = retrieve_for_answer(user, item["question"], k)
         rank = None
         for i, r in enumerate(retrieved, start=1):
             same_doc = r.chunk.document_id == doc_by_key[item["doc"]].id
@@ -83,7 +83,8 @@ def evaluate(k: int):
 def main():
     k = settings.RAG["TOP_K"]
     print(f"Provider: {settings.RAG['PROVIDER']}  |  k={k}  "
-          f"|  chunk_tokens={settings.RAG['CHUNK_TOKENS']}  "
+          f"|  hybrid={settings.RAG['HYBRID']}  rerank={settings.RAG['RERANK']}"
+          f"  |  chunk_tokens={settings.RAG['CHUNK_TOKENS']}  "
           f"overlap={settings.RAG['CHUNK_OVERLAP']}")
     print("-" * 64)
     recall, mrr, rows, n = evaluate(k)
