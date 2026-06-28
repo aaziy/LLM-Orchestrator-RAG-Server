@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RAG Server — Test Console</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#2a3340;
+    --text:#e6edf3; --muted:#8b97a7; --accent:#4f9cf9; --accent2:#3fb950;
+    --warn:#d29922; --danger:#f85149; --chip:#21304a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent)}
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;border-bottom:1px solid var(--border);background:var(--panel)}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header h1 small{color:var(--muted);font-weight:400;margin-left:8px}
+  .auth-state{font-size:12px;color:var(--muted)}
+  .auth-state b{color:var(--accent2)}
+  main{max-width:1180px;margin:0 auto;padding:22px;
+    display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .card.full{grid-column:1 / -1}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);margin:0 0 12px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+  input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);border-radius:7px;padding:8px 10px;font:inherit}
+  textarea{resize:vertical;min-height:64px}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  button{background:var(--accent);color:#fff;border:0;border-radius:7px;
+    padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;margin-top:10px}
+  button.secondary{background:var(--panel2);border:1px solid var(--border);color:var(--text)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:4px 9px;margin:0;font-weight:500;font-size:12px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .b-ready{background:rgba(63,185,80,.15);color:var(--accent2)}
+  .b-pending,.b-processing{background:rgba(210,153,34,.15);color:var(--warn)}
+  .b-failed{background:rgba(248,81,73,.15);color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase}
+  .answer{background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+    padding:12px;white-space:pre-wrap;min-height:40px}
+  .cite{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent);
+    border-radius:6px;padding:8px 10px;margin-top:8px;font-size:12.5px}
+  .cite .meta{color:var(--muted);font-size:11px;margin-bottom:3px}
+  .chip{display:inline-block;background:var(--chip);color:#c9d6ee;border-radius:6px;
+    padding:2px 7px;font-size:11px;margin-right:6px}
+  .metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .metric{background:var(--panel2);border:1px solid var(--border);border-radius:7px;
+    padding:8px 12px;min-width:96px}
+  .metric .v{font-size:17px;font-weight:600}.metric .l{font-size:11px;color:var(--muted)}
+  .docfilter{max-height:120px;overflow:auto;background:var(--panel2);
+    border:1px solid var(--border);border-radius:7px;padding:8px}
+  .docfilter label{display:flex;align-items:center;gap:8px;margin:0 0 4px;color:var(--text)}
+  .docfilter input{width:auto}
+  .toast{position:fixed;bottom:18px;right:18px;background:var(--panel2);
+    border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;
+    opacity:0;transform:translateY(8px);transition:.2s;max-width:340px}
+  .toast.show{opacity:1;transform:none}
+  .toast.err{border-color:var(--danger);color:#ffb4ae}
+  .toast.ok{border-color:var(--accent2)}
+  .muted{color:var(--muted)}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>RAG Server <small>Test Console</small></h1>
+  <div class="auth-state" id="authState">Not signed in</div>
+</header>
+
+<main>
+  <!-- AUTH -->
+  <section class="card" id="authCard">
+    <h2>1 · Authentication</h2>
+    <div class="row">
+      <div><label>Username</label><input id="username" value="demo" /></div>
+      <div><label>Password</label><input id="password" type="password" value="secret123" /></div>
+    </div>
+    <div class="row">
+      <button onclick="register()">Register</button>
+      <button class="secondary" onclick="login()">Log in</button>
+      <button class="secondary" onclick="logout()">Log out</button>
+    </div>
+    <p class="hint">Register a new user or log in to get an API token (stored in your browser).</p>
+  </section>
+
+  <!-- UPLOAD -->
+  <section class="card">
+    <h2>2 · Upload &amp; ingest</h2>
+    <label>File (.txt .md .pdf .docx)</label>
+    <input type="file" id="file" />
+    <div class="row">
+      <div><label>Title (optional)</label><input id="title" /></div>
+      <div><label>Author (optional)</label><input id="author" /></div>
+    </div>
+    <label>Document date (optional)</label>
+    <input id="docDate" type="date" />
+    <button onclick="upload()">Upload</button>
+    <p class="hint">Re-uploading the same file returns <code>unchanged</code>; changed content
+      re-embeds. Metadata is filterable in queries.</p>
+    <div id="uploadResult" class="hint"></div>
+  </section>
+
+  <!-- DOCUMENTS -->
+  <section class="card full">
+    <h2>3 · Documents
+      <button class="ghost" style="float:right" onclick="loadDocs()">Refresh</button>
+    </h2>
+    <table id="docsTable">
+      <thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Date</th>
+        <th>Status</th><th>Chunks</th><th>Chars</th><th></th></tr></thead>
+      <tbody><tr><td colspan="8" class="muted">Sign in and upload a document.</td></tr></tbody>
+    </table>
+    <p class="hint" id="pollHint"></p>
+  </section>
+
+  <!-- QUERY -->
+  <section class="card full">
+    <h2>4 · Query</h2>
+    <div class="row">
+      <div style="flex:3">
+        <label>Question</label>
+        <textarea id="question" placeholder="Ask something answerable from your documents…"></textarea>
+      </div>
+      <div style="flex:1">
+        <label>Top-K</label><input id="k" type="number" value="5" min="1" max="20" />
+        <label style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="stream" style="width:auto" /> Stream (SSE)</label>
+      </div>
+    </div>
+
+    <details style="margin-top:10px">
+      <summary class="muted" style="cursor:pointer">Filters (metadata)</summary>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Restrict to documents</label>
+          <div class="docfilter" id="docFilter"><span class="muted">No documents loaded.</span></div>
+        </div>
+        <div>
+          <label>Author contains</label><input id="fAuthor" />
+          <label>Date from</label><input id="fFrom" type="date" />
+          <label>Date to</label><input id="fTo" type="date" />
+        </div>
+      </div>
+    </details>
+
+    <button onclick="runQuery()" id="queryBtn">Run query</button>
+    <p class="hint">Tip: ask something <i>not</i> in your docs to see the grounding guardrail
+      ("insufficient context") instead of a hallucination.</p>
+
+    <label style="margin-top:14px">Answer</label>
+    <div class="answer" id="answer"><span class="muted">—</span></div>
+    <div class="metrics" id="metrics"></div>
+    <div id="citations"></div>
+  </section>
+
+  <!-- USAGE -->
+  <section class="card full">
+    <h2>5 · Usage &amp; cost
+      <button class="ghost" style="float:right" onclick="loadUsage()">Refresh</button>
+    </h2>
+    <div class="metrics" id="usage"><span class="muted">Sign in to view usage.</span></div>
+    <p class="hint">Per-user aggregate from <code>QueryLog</code>. Full traces (input → chunks →
+      prompt → output) appear in Langfuse when tracing is enabled.</p>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let TOKEN = localStorage.getItem("rag_token") || "";
+let DOCS = [];
+
+function toast(msg, kind="ok"){
+  const t=$("toast"); t.textContent=msg; t.className="toast show "+kind;
+  setTimeout(()=>t.className="toast "+kind, 3200);
+}
+function authHeaders(extra={}){
+  return TOKEN ? {...extra, "Authorization":"Token "+TOKEN} : extra;
+}
+function renderAuth(){
+  $("authState").innerHTML = TOKEN
+    ? 'Signed in · token <b>'+TOKEN.slice(0,10)+'…</b>'
+    : 'Not signed in';
+}
+async function api(path, opts={}){
+  const res = await fetch("/api"+path, opts);
+  const text = await res.text();
+  let data; try{ data = text ? JSON.parse(text) : {}; }catch{ data = {raw:text}; }
+  if(!res.ok){ throw new Error(data.detail || JSON.stringify(data) || res.status); }
+  return data;
+}
+
+/* ---- auth ---- */
+async function register(){
+  try{
+    const d = await api("/auth/register",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:$("username").value,password:$("password").value})});
+    TOKEN=d.token; localStorage.setItem("rag_token",TOKEN); renderAuth();
+    toast("Registered & signed in"); loadDocs(); loadUsage();
+  }catch(e){ toast("Register failed: "+e.message,"err"); }
+}
+async function login(){
+  try{
+    const d = await api("/auth/token",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:$("username").value,password:$("password").value})});
+    TOKEN=d.token; localStorage.setItem("rag_token",TOKEN); renderAuth();
+    toast("Signed in"); loadDocs(); loadUsage();
+  }catch(e){ toast("Login failed: "+e.message,"err"); }
+}
+function logout(){ TOKEN=""; localStorage.removeItem("rag_token"); renderAuth(); toast("Signed out"); }
+
+/* ---- upload ---- */
+async function upload(){
+  if(!TOKEN) return toast("Sign in first","err");
+  const f=$("file").files[0]; if(!f) return toast("Pick a file","err");
+  const fd=new FormData(); fd.append("file",f);
+  if($("title").value) fd.append("title",$("title").value);
+  if($("author").value) fd.append("author",$("author").value);
+  if($("docDate").value) fd.append("doc_date",$("docDate").value);
+  try{
+    const d = await api("/documents",{method:"POST",headers:authHeaders(),body:fd});
+    $("uploadResult").innerHTML = 'Result: <span class="chip">'+(d.sync_action||"?")+
+      '</span> status <span class="chip">'+d.status+'</span> · '+(d.chunk_count??0)+' chunks';
+    toast("Uploaded ("+(d.sync_action||"ok")+")");
+    loadDocs(); loadUsage();
+  }catch(e){ toast("Upload failed: "+e.message,"err"); }
+}
+
+/* ---- documents ---- */
+function badge(s){ return '<span class="badge b-'+s+'">'+s+'</span>'; }
+async function loadDocs(){
+  if(!TOKEN) return;
+  try{
+    DOCS = await api("/documents",{headers:authHeaders()});
+    const tb=$("docsTable").querySelector("tbody");
+    if(!DOCS.length){ tb.innerHTML='<tr><td colspan="8" class="muted">No documents yet.</td></tr>'; }
+    else tb.innerHTML = DOCS.map(d=>`<tr>
+      <td>${d.id}</td><td>${d.title||""}</td><td>${d.author||"—"}</td>
+      <td>${d.doc_date||"—"}</td><td>${badge(d.status)}</td>
+      <td>${d.chunk_count??0}</td><td>${d.char_count??0}</td>
+      <td><button class="ghost" onclick="delDoc(${d.id})">delete</button></td></tr>`).join("");
+    renderDocFilter();
+    // Auto-poll while anything is still processing (async ingestion).
+    const pending = DOCS.some(d=>d.status==="pending"||d.status==="processing");
+    $("pollHint").textContent = pending ? "Processing… auto-refreshing." : "";
+    if(pending) setTimeout(loadDocs, 1500);
+  }catch(e){ toast("Load docs failed: "+e.message,"err"); }
+}
+async function delDoc(id){
+  try{ await fetch("/api/documents/"+id,{method:"DELETE",headers:authHeaders()});
+    toast("Deleted #"+id); loadDocs(); }catch(e){ toast("Delete failed","err"); }
+}
+function renderDocFilter(){
+  const el=$("docFilter");
+  if(!DOCS.length){ el.innerHTML='<span class="muted">No documents loaded.</span>'; return; }
+  el.innerHTML = DOCS.map(d=>`<label><input type="checkbox" class="docchk" value="${d.id}"> #${d.id} ${d.title||""}</label>`).join("");
+}
+function collectFilters(){
+  const ids=[...document.querySelectorAll(".docchk:checked")].map(c=>+c.value);
+  const body={};
+  if(ids.length) body.document_ids=ids;
+  if($("fAuthor").value) body.author=$("fAuthor").value;
+  if($("fFrom").value) body.date_from=$("fFrom").value;
+  if($("fTo").value) body.date_to=$("fTo").value;
+  return body;
+}
+
+/* ---- query ---- */
+function metric(v,l){ return `<div class="metric"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+function showMetrics(m){
+  $("metrics").innerHTML = [
+    metric((m.latency_ms??"–")+" ms","total"),
+    metric((m.retrieval_ms??"–")+" ms","retrieval"),
+    metric((m.generation_ms??"–")+" ms","generation"),
+    metric(m.usage?.prompt_tokens??"–","prompt tok"),
+    metric(m.usage?.completion_tokens??"–","completion tok"),
+    metric("$"+(m.usage?.cost_usd??0).toFixed(6),"cost"),
+  ].join("");
+}
+function showCitations(cites){
+  $("citations").innerHTML = !cites?.length
+    ? '<p class="hint">No citations returned.</p>'
+    : '<label style="margin-top:12px">Citations</label>'+cites.map(c=>`
+      <div class="cite">
+        <div class="meta">#${c.index} · doc ${c.document_id} · chunk ${c.chunk_id} · ord ${c.ordinal}
+          · vec ${(c.score??0).toFixed(3)}${c.rerank_score!=null?" · rerank "+(+c.rerank_score).toFixed(3):""}</div>
+        ${(c.preview||"").replace(/</g,"&lt;")}
+      </div>`).join("");
+}
+async function runQuery(){
+  if(!TOKEN) return toast("Sign in first","err");
+  const body={question:$("question").value, k:+$("k").value, ...collectFilters()};
+  if(!body.question.trim()) return toast("Enter a question","err");
+  $("queryBtn").disabled=true; $("answer").textContent=""; $("citations").innerHTML=""; $("metrics").innerHTML="";
+  try{
+    if($("stream").checked) await runStream(body);
+    else{
+      const d=await api("/query",{method:"POST",
+        headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify(body)});
+      $("answer").textContent=d.answer||"—";
+      showCitations(d.citations); showMetrics(d);
+    }
+    loadUsage();
+  }catch(e){ toast("Query failed: "+e.message,"err"); $("answer").textContent="—"; }
+  finally{ $("queryBtn").disabled=false; }
+}
+async function runStream(body){
+  const res=await fetch("/api/query/stream",{method:"POST",
+    headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify(body)});
+  if(!res.ok) throw new Error(await res.text());
+  const reader=res.body.getReader(); const dec=new TextDecoder(); let buf="";
+  $("answer").textContent="";
+  while(true){
+    const {value,done}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const blocks=buf.split("\n\n"); buf=blocks.pop();
+    for(const block of blocks){
+      let ev=null,data=null;
+      for(const line of block.split("\n")){
+        if(line.startsWith("event:")) ev=line.slice(6).trim();
+        else if(line.startsWith("data:")) data=JSON.parse(line.slice(5).trim());
+      }
+      if(ev==="citations") showCitations(data.citations);
+      else if(ev==="token") $("answer").textContent += data.text;
+      else if(ev==="done") showMetrics(data);
+    }
+  }
+}
+
+/* ---- usage ---- */
+async function loadUsage(){
+  if(!TOKEN) return;
+  try{
+    const u=await api("/usage",{headers:authHeaders()});
+    $("usage").innerHTML=[
+      metric(u.queries,"queries"),
+      metric(u.prompt_tokens,"prompt tok"),
+      metric(u.completion_tokens,"completion tok"),
+      metric("$"+(u.total_cost_usd||0).toFixed(6),"total cost"),
+      metric(u.avg_latency_ms+" ms","avg total"),
+      metric(u.avg_retrieval_ms+" ms","avg retrieval"),
+      metric(u.avg_generation_ms+" ms","avg generation"),
+    ].join("");
+  }catch(e){ /* ignore */ }
+}
+
+/* init */
+renderAuth();
+if(TOKEN){ loadDocs(); loadUsage(); }
+</script>
+</body>
+</html>
